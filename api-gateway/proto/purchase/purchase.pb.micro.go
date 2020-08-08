@@ -48,6 +48,7 @@ type PurchaseService interface {
 	GetCartContents(ctx context.Context, in *GetCartContentsRequest, opts ...client.CallOption) (*GetCartContentsResponse, error)
 	CloseCart(ctx context.Context, in *CloseCartRequest, opts ...client.CallOption) (*CloseCartResponse, error)
 	Checkout(ctx context.Context, in *CheckoutRequest, opts ...client.CallOption) (*CheckoutResponse, error)
+	GetOrderTicket(ctx context.Context, in *GetOrderTicketRequest, opts ...client.CallOption) (*GetOrderTicketResponse, error)
 }
 
 type purchaseService struct {
@@ -122,6 +123,16 @@ func (c *purchaseService) Checkout(ctx context.Context, in *CheckoutRequest, opt
 	return out, nil
 }
 
+func (c *purchaseService) GetOrderTicket(ctx context.Context, in *GetOrderTicketRequest, opts ...client.CallOption) (*GetOrderTicketResponse, error) {
+	req := c.c.NewRequest(c.name, "Purchase.GetOrderTicket", in)
+	out := new(GetOrderTicketResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Purchase service
 
 type PurchaseHandler interface {
@@ -131,6 +142,7 @@ type PurchaseHandler interface {
 	GetCartContents(context.Context, *GetCartContentsRequest, *GetCartContentsResponse) error
 	CloseCart(context.Context, *CloseCartRequest, *CloseCartResponse) error
 	Checkout(context.Context, *CheckoutRequest, *CheckoutResponse) error
+	GetOrderTicket(context.Context, *GetOrderTicketRequest, *GetOrderTicketResponse) error
 }
 
 func RegisterPurchaseHandler(s server.Server, hdlr PurchaseHandler, opts ...server.HandlerOption) error {
@@ -141,6 +153,7 @@ func RegisterPurchaseHandler(s server.Server, hdlr PurchaseHandler, opts ...serv
 		GetCartContents(ctx context.Context, in *GetCartContentsRequest, out *GetCartContentsResponse) error
 		CloseCart(ctx context.Context, in *CloseCartRequest, out *CloseCartResponse) error
 		Checkout(ctx context.Context, in *CheckoutRequest, out *CheckoutResponse) error
+		GetOrderTicket(ctx context.Context, in *GetOrderTicketRequest, out *GetOrderTicketResponse) error
 	}
 	type Purchase struct {
 		purchase
@@ -175,4 +188,8 @@ func (h *purchaseHandler) CloseCart(ctx context.Context, in *CloseCartRequest, o
 
 func (h *purchaseHandler) Checkout(ctx context.Context, in *CheckoutRequest, out *CheckoutResponse) error {
 	return h.PurchaseHandler.Checkout(ctx, in, out)
+}
+
+func (h *purchaseHandler) GetOrderTicket(ctx context.Context, in *GetOrderTicketRequest, out *GetOrderTicketResponse) error {
+	return h.PurchaseHandler.GetOrderTicket(ctx, in, out)
 }

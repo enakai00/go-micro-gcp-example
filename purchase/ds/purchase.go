@@ -55,6 +55,18 @@ func getCartStruct(cartid string) (*Cart, bool) {
 	return &cart, true
 }
 
+func getOrderTicketStruct(orderid string) (*OrderTicket, bool) {
+	query := datastore.NewQuery("OrderTicket").Filter("orderid =", orderid)
+	it := client.Run(context.Background(), query)
+
+	var orderTicket OrderTicket
+	_, err := it.Next(&orderTicket)
+	if err == iterator.Done {
+		return nil, false
+	}
+	return &orderTicket, true
+}
+
 func getCartItem(cartid string, itemid string) (*CartItem, bool) {
 	cart, ok := getCartStruct(cartid)
 	if !ok {
@@ -218,6 +230,20 @@ func GetCartContents(cartid string) []*purchase.CartItem {
 		cartItems = append(cartItems, &purchaseCartItem)
 	}
 	return cartItems
+}
+
+func GetOrderTicket(orderid string) *purchase.OrderTicket {
+	orderTicket, ok := getOrderTicketStruct(orderid)
+	if !ok {
+		return &purchase.OrderTicket{}
+	}
+	purchaseCartItems := GetCartContents(orderTicket.Cartid)
+	purchaseOrderTicket := purchase.OrderTicket{
+		Orderid:   orderTicket.Orderid,
+		Status:    orderTicket.Status,
+		CartItems: purchaseCartItems,
+	}
+	return &purchaseOrderTicket
 }
 
 func Checkout(cartid string) *purchase.OrderTicket {

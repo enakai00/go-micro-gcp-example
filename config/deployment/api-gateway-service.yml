@@ -1,28 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-gateway
+  name: api-gateway-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: api-gateway
+      app: api-gateway-service
   template:
     metadata:
       labels:
-        app: api-gateway
+        app: api-gateway-service
     spec:
         containers:
-        - name: api-gateway
-          image: gcr.io/go-micro-test/api-gateway:latest
+        - name: api-gateway-service
+          image: gcr.io/go-micro-test/api-gateway-service:latest
           imagePullPolicy: Always
           env:
-          - name: MICRO_PLUGIN
-            value: "registry/kubernetes/v2"
           - name: MICRO_REGISTRY
             value: "kubernetes"
-          - name: MICRO_SERVER_ADDRESS
-            value: "0.0.0.0:8080"
+          - name: PORT
+            value: "8080"
           ports:
           - containerPort: 8080
             name: service-port

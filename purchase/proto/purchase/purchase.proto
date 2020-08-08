@@ -9,7 +9,7 @@ service Purchase {
 	rpc GetCartContents(GetCartContentsRequest) returns (GetCartContentsResponse) {}
 	rpc CloseCart(CloseCartRequest) returns (CloseCartResponse) {}
 	rpc Checkout(CheckoutRequest) returns (CheckoutResponse) {}
-//	rpc OrderStatus(OrderStatusRequest) returns (OrderStatusResponse) {}
+	rpc GetOrderTicket(GetOrderTicketRequest) returns (GetOrderTicketResponse) {}
 }
 
 
@@ -77,5 +77,13 @@ message CheckoutRequest {
 }
 
 message CheckoutResponse {
+	OrderTicket order_ticket = 1;
+}
+
+message GetOrderTicketRequest {
+	string orderid = 1;
+}
+
+message GetOrderTicketResponse {
 	OrderTicket order_ticket = 1;
 }

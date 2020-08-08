@@ -5,8 +5,8 @@ MODIFY=Mproto/imports/api.proto=github.com/micro/go-micro/v2/api/proto
 .PHONY: proto
 proto:
     
+	cp ../purchase/proto/purchase/purchase.proto ./proto/purchase/purchase.proto 
 	protoc --proto_path=. --micro_out=${MODIFY}:. --go_out=${MODIFY}:. proto/purchase/purchase.proto
-    
 
 .PHONY: build
 build: proto

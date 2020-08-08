@@ -51,3 +51,10 @@ func (e *Purchase) Checkout(ctx context.Context,
 	rsp.OrderTicket = ds.Checkout(req.Cartid)
 	return nil
 }
+
+func (e* Purchase) GetOrderTicket(ctx context.Context,
+	req *purchase.GetOrderTicketRequest,
+	rsp *purchase.GetOrderTicketResponse) error {
+	rsp.OrderTicket = ds.GetOrderTicket(req.Orderid)
+	return nil
+}
