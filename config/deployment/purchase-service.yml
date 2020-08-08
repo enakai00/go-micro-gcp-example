@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: purchase-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: purchase-service
+  template:
+    metadata:
+      labels:
+        app: purchase-service
+    spec:
+        containers:
+        - name: purchase-service
+          image: gcr.io/go-micro-test/purchase-service:latest
+          imagePullPolicy: Always
+          env:
+          - name: GOOGLE_CLOUD_PROJECT
+            value: "go-micro-test"
+          - name: EVENT_PUBLISH_TOPIC
+            value: "com.example.purchase"
+          - name: MICRO_REGISTRY
+            value: "kubernetes"
+          - name: MICRO_SERVER_ADDRESS
+            value: "0.0.0.0:8080"
+          ports:
+          - containerPort: 8080
+            name: service-port

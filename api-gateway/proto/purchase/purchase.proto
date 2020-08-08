@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package com.example.service.purchase;
+
+service Purchase {
+	rpc CreateCart(CreateCartRequest) returns (CreateCartResponse) {}
+	rpc GetCart(GetCartRequest) returns (GetCartResponse) {}
+	rpc AddItem(AddItemRequest) returns (AddItemResponse) {}
+	rpc GetCartContents(GetCartContentsRequest) returns (GetCartContentsResponse) {}
+	rpc CloseCart(CloseCartRequest) returns (CloseCartResponse) {}
+	rpc Checkout(CheckoutRequest) returns (CheckoutResponse) {}
+//	rpc OrderStatus(OrderStatusRequest) returns (OrderStatusResponse) {}
+}
+
+
+message Cart {
+	string cartid = 1;
+	string status = 2;
+}
+
+message CreateCartRequest {
+	string cartid = 1;
+}
+
+message CreateCartResponse {
+	Cart cart = 1;
+}
+
+message GetCartRequest {
+	string cartid = 1;
+}
+
+message GetCartResponse {
+	Cart cart = 1;
+}
+
+message CloseCartRequest {
+	string cartid = 1;
+}
+
+message CloseCartResponse {
+	Cart cart = 1;
+}
+
+message CartItem {
+	string itemid = 1;
+	int64 count = 2;
+}
+
+message OrderTicket {
+	string orderid = 1;
+	string status = 2;
+	repeated CartItem cart_items = 4;
+}
+
+message AddItemRequest {
+	string cartid = 1;
+	string itemid = 2;
+	int64 count = 3;
+}
+
+message AddItemResponse {
+	repeated CartItem cart_items = 1;
+}
+
+message GetCartContentsRequest {
+	string cartid = 1;
+}
+
+message GetCartContentsResponse {
+	string cartid = 1;
+	repeated CartItem cart_items = 2;
+}
+
+message CheckoutRequest {
+	string cartid = 1;
+}
+
+message CheckoutResponse {
+	OrderTicket order_ticket = 1;
+}

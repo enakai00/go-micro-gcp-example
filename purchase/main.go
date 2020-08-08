@@ -7,6 +7,8 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
+
+	_ "github.com/micro/go-plugins/registry/kubernetes/v2"
 )
 
 func main() {
