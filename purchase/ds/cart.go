@@ -10,13 +10,13 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"google.golang.org/api/iterator"
 
+	"github.com/enakai00/go-micro-gcp-example/purchase/events"
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
 )
 
 type Cart struct {
-	//Cartid *datastore.Key `datastore:"__key__"`
 	Cartid string         `datastore:"cartid"`
-	Status string         `datastore:"status"` // open, checked-out
+	Status string         `datastore:"status"` // open, closed, checked-out
 	Key    *datastore.Key `datastore:"__key__"`
 }
 
@@ -31,12 +31,6 @@ type OrderTicket struct {
 	Cartid  string         `datastore:"cartid"`
 	Status  string         `datastore:"status"`
 	Key     *datastore.Key `datastore:"__key__"`
-}
-
-type EventEntity struct {
-	Sent      bool           `datastore:"sent"`
-	EventData []byte         `datastore:"event_data"`
-	Key       *datastore.Key `datastore:"__key__"`
 }
 
 var (
@@ -261,14 +255,16 @@ func Checkout(cartid string) *purchase.OrderTicket {
 				return err
 			}
 
+			cartContents := GetCartContents(cartid)
 			purchaseOrderTicket = purchase.OrderTicket{
 				Orderid:   orderTicket.Orderid,
 				Status:    orderTicket.Status,
-				CartItems: GetCartContents(cartid),
+				CartItems: cartContents,
 			}
-
 			jsonBytes, _ := json.Marshal(purchaseOrderTicket)
-			eventEntity := EventEntity{
+			eventEntity := events.EventEntity{
+				Eventid:   getUUID(),
+				Type:      "purchase.OrderTicket",
 				Sent:      false,
 				EventData: jsonBytes,
 			}
@@ -277,10 +273,12 @@ func Checkout(cartid string) *purchase.OrderTicket {
 			if err != nil {
 				return err
 			}
+
 			return nil
 		})
 	if err != nil {
 		log.Fatalf("Error stroing data: %v", err)
 	}
+	events.Sendout()
 	return &purchaseOrderTicket
 }
