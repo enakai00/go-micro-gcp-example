@@ -2,32 +2,24 @@ package events
 
 import (
 	"context"
-	"os"
 
 	"cloud.google.com/go/datastore"
 	"github.com/micro/go-micro/v2/broker"
 	log "github.com/micro/go-micro/v2/logger"
-	"github.com/micro/go-plugins/broker/googlepubsub/v2"
 	"google.golang.org/api/iterator"
 )
 
-var (
-	topic     = os.Getenv("EVENT_PUBLISH_TOPIC")
-	projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, _ = datastore.NewClient(context.Background(), projectID)
-	brk       broker.Broker
-)
-
-func init() {
-	brk = googlepubsub.NewBroker(googlepubsub.ProjectID(projectID))
-	err := brk.Connect()
+func RecordEvent(table string, eventid string) {
+	eventKey := datastore.IncompleteKey(table, nil)
+	receivedEvent := ReceivedEvent{Eventid: eventid}
+	_, err := client.Put(context.Background(), eventKey, &receivedEvent)
 	if err != nil {
-		log.Fatalf("Broker Connect error: %v", err)
+		log.Fatalf("Error stroing data: %v", err)
 	}
 }
 
-func Sendout() int {
-	query := datastore.NewQuery("Event").Filter("sent =", false)
+func Sendout(table string) int {
+	query := datastore.NewQuery(table).Filter("sent =", false)
 	it := client.Run(context.Background(), query)
 
 	i := 0
@@ -41,11 +33,11 @@ func Sendout() int {
 		msg := &broker.Message{
 			Header: map[string]string{
 				"eventid": eventEntity.Eventid,
-				"type:":   eventEntity.Type,
+				"type":    eventEntity.Type,
 			},
 			Body: eventEntity.EventData,
 		}
-		err = brk.Publish(topic, msg)
+		err = brk.Publish(publishTopic, msg)
 		if err != nil {
 			log.Fatalf("Error publishing event: %v", err)
 		}

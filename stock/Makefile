@@ -8,11 +8,13 @@ proto:
 	mkdir -p ./proto/purchase
 	cp ../purchase/proto/purchase/purchase.proto ./proto/purchase/purchase.proto 
 	protoc --proto_path=. --micro_out=${MODIFY}:. --go_out=${MODIFY}:. proto/purchase/purchase.proto
+	protoc --proto_path=. --micro_out=${MODIFY}:. --go_out=${MODIFY}:. proto/stock/stock.proto
+    
 
 .PHONY: build
 build: proto
 
-	go build -o api-gateway-service *.go
+	go build -o stock-service *.go
 
 .PHONY: test
 test:
@@ -20,4 +22,4 @@ test:
 
 .PHONY: docker
 docker:
-	docker build . -t api-gateway-service:latest
+	docker build . -t stock-service:latest

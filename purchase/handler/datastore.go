@@ -1,4 +1,4 @@
-package ds
+package handler
 
 import (
 	"context"
@@ -10,10 +10,12 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"google.golang.org/api/iterator"
 
+	"github.com/enakai00/go-micro-gcp-example/purchase/ds"
 	"github.com/enakai00/go-micro-gcp-example/purchase/events"
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
 )
 
+/*
 type Cart struct {
 	Cartid string         `datastore:"cartid"`
 	Status string         `datastore:"status"` // open, closed, checked-out
@@ -32,6 +34,7 @@ type OrderTicket struct {
 	Status  string         `datastore:"status"`
 	Key     *datastore.Key `datastore:"__key__"`
 }
+*/
 
 var (
 	projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
@@ -43,11 +46,11 @@ func getUUID() string {
 	return uuid.String()
 }
 
-func getCartStruct(cartid string) (*Cart, bool) {
+func getCartStruct(cartid string) (*ds.Cart, bool) {
 	query := datastore.NewQuery("Cart").Filter("cartid =", cartid)
 	it := client.Run(context.Background(), query)
 
-	var cart Cart
+	var cart ds.Cart
 	_, err := it.Next(&cart)
 	if err == iterator.Done {
 		return nil, false
@@ -55,11 +58,11 @@ func getCartStruct(cartid string) (*Cart, bool) {
 	return &cart, true
 }
 
-func getOrderTicketStruct(orderid string) (*OrderTicket, bool) {
+func getOrderTicketStruct(orderid string) (*ds.OrderTicket, bool) {
 	query := datastore.NewQuery("OrderTicket").Filter("orderid =", orderid)
 	it := client.Run(context.Background(), query)
 
-	var orderTicket OrderTicket
+	var orderTicket ds.OrderTicket
 	_, err := it.Next(&orderTicket)
 	if err == iterator.Done {
 		return nil, false
@@ -67,7 +70,7 @@ func getOrderTicketStruct(orderid string) (*OrderTicket, bool) {
 	return &orderTicket, true
 }
 
-func getCartItem(cartid string, itemid string) (*CartItem, bool) {
+func getCartItem(cartid string, itemid string) (*ds.CartItem, bool) {
 	cart, ok := getCartStruct(cartid)
 	if !ok {
 		return nil, false
@@ -75,7 +78,7 @@ func getCartItem(cartid string, itemid string) (*CartItem, bool) {
 	ancestor := cart.Key
 	query := datastore.NewQuery("CartItem").Ancestor(ancestor).Filter("itemid =", itemid)
 	it := client.Run(context.Background(), query)
-	cartItem := CartItem{}
+	cartItem := ds.CartItem{}
 	_, err := it.Next(&cartItem)
 	if err == iterator.Done {
 		return nil, false
@@ -87,7 +90,7 @@ func CreateCart(cartid string) *purchase.Cart {
 	cart, ok := getCartStruct(cartid)
 	if !ok {
 		cartKey := datastore.IncompleteKey("Cart", nil)
-		cart = &Cart{
+		cart = &ds.Cart{
 			Cartid: cartid,
 			Status: "open",
 		}
@@ -122,7 +125,7 @@ func CloseCart(cartid string) *purchase.Cart {
 	}
 	_, err := client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
-			var cartStruct Cart
+			var cartStruct ds.Cart
 			err := tx.Get(cartStructWithoutTx.Key, &cartStruct)
 			if err != nil {
 				return err
@@ -153,7 +156,7 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 	_, err := client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
 
-			var cartStruct Cart
+			var cartStruct ds.Cart
 			err := tx.Get(cartStructWithoutTx.Key, &cartStruct)
 			if err != nil {
 				return err
@@ -163,24 +166,24 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 			}
 
 			var key *datastore.Key
-			var data CartItem
+			var data ds.CartItem
 
 			cartItemWithoutTx, ok := getCartItem(cartid, itemid)
 			if ok {
-				var cartItem CartItem
+				var cartItem ds.CartItem
 				err := tx.Get(cartItemWithoutTx.Key, &cartItem)
 				if err != nil {
 					return err
 				}
 				key = cartItem.Key
-				data = CartItem{
+				data = ds.CartItem{
 					Itemid: itemid,
 					Count:  cartItem.Count + count,
 				}
 			} else {
 				cart, _ := getCartStruct(cartid)
 				key = datastore.IncompleteKey("CartItem", cart.Key)
-				data = CartItem{
+				data = ds.CartItem{
 					Itemid: itemid,
 					Count:  count,
 				}
@@ -198,16 +201,16 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 	return cartItems
 }
 
-func getCartItems(cartid string) []*CartItem {
+func getCartItems(cartid string) []*ds.CartItem {
 	cart, ok := getCartStruct(cartid)
-	cartItems := []*CartItem{}
+	cartItems := []*ds.CartItem{}
 	if !ok {
 		return cartItems
 	}
 	query := datastore.NewQuery("CartItem").Ancestor(cart.Key)
 	it := client.Run(context.Background(), query)
 	for {
-		cartItem := CartItem{}
+		cartItem := ds.CartItem{}
 		_, err := it.Next(&cartItem)
 		if err == iterator.Done {
 			break
@@ -256,7 +259,7 @@ func Checkout(cartid string) *purchase.OrderTicket {
 				return nil // non existing cartid
 			}
 
-			var cart Cart
+			var cart ds.Cart
 			err := tx.Get(cartWithoutTx.Key, &cart) // Read again within a transaction
 			if err != nil {
 				return err
@@ -271,7 +274,7 @@ func Checkout(cartid string) *purchase.OrderTicket {
 			}
 
 			ticketKey := datastore.IncompleteKey("OrderTicket", nil)
-			orderTicket := OrderTicket{
+			orderTicket := ds.OrderTicket{
 				Orderid: getUUID(),
 				Cartid:  cartid,
 				Status:  "pre-approved",
@@ -294,7 +297,7 @@ func Checkout(cartid string) *purchase.OrderTicket {
 				Sent:      false,
 				EventData: jsonBytes,
 			}
-			eventEntityKey := datastore.IncompleteKey("Event", nil)
+			eventEntityKey := datastore.IncompleteKey(events.EventPublishTable, nil)
 			_, err = tx.Put(eventEntityKey, &eventEntity)
 			if err != nil {
 				return err
@@ -305,6 +308,6 @@ func Checkout(cartid string) *purchase.OrderTicket {
 	if err != nil {
 		log.Fatalf("Error stroing data: %v", err)
 	}
-	events.Sendout()
+	events.Sendout(events.EventPublishTable)
 	return &purchaseOrderTicket
 }

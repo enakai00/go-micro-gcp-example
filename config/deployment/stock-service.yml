@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: purchase-service
+  name: stock-service
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: purchase-service
+      app: stock-service
   template:
     metadata:
       labels:
-        app: purchase-service
+        app: stock-service
     spec:
         containers:
-        - name: purchase-service
-          image: gcr.io/go-micro-test/purchase-service:latest
+        - name: stock-service
+          image: gcr.io/go-micro-test/stock-service:latest
           imagePullPolicy: Always
           env:
           - name: GOOGLE_CLOUD_PROJECT
             value: "go-micro-test"
           - name: EVENT_PUBLISH_TOPIC
-            value: "com.example.purchase"
-          - name: EVENT_SUBSCRIBE_TOPICS
             value: "com.example.stock"
+          - name: EVENT_SUBSCRIBE_TOPICS
+            value: "com.example.purchase"
           - name: MICRO_REGISTRY
             value: "kubernetes"
           - name: MICRO_SERVER_ADDRESS
