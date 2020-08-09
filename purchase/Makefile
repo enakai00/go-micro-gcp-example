@@ -1,4 +1,4 @@
-
+PROJECT_ID=go-micro-test
 GOPATH:=$(shell go env GOPATH)
 MODIFY=Mproto/imports/api.proto=github.com/micro/go-micro/v2/api/proto
 
@@ -18,5 +18,5 @@ test:
 .PHONY: docker
 docker:
 	docker build . -t purchase-service:latest
-	docker tag purchase-service:latest gcr.io/go-micro-test/purchase-service:latest
-	docker push gcr.io/go-micro-test/purchase-service:latest
+	docker tag purchase-service:latest gcr.io/${PROJECT_ID}/purchase-service:latest
+	docker push gcr.io/${PROJECT_ID}/purchase-service:latest
