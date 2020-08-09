@@ -41,8 +41,8 @@ func init() {
 	}
 
 	for _, subscribeTopic := range strings.Split(subscribeTopics, ",") {
-		_, err := brk.Subscribe(subscribeTopic,
-			eventHandler, broker.Queue(subscribeTopic),
+		_, err := brk.Subscribe(subscribeTopic, eventHandler,
+			broker.Queue("purchase-service"),
 			broker.DisableAutoAck())
 		if err != nil {
 			log.Fatalf("Broker Subscribe error: %v", err)
