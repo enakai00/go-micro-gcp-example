@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/enakai00/go-micro-gcp-example/purchase/handler"
+        _ "github.com/enakai00/go-micro-gcp-example/purchase/events"
 
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
