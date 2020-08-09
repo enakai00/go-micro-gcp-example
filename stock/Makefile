@@ -4,7 +4,6 @@ MODIFY=Mproto/imports/api.proto=github.com/micro/go-micro/v2/api/proto
 
 .PHONY: proto
 proto:
-    
 	mkdir -p ./proto/purchase
 	cp ../purchase/proto/purchase/purchase.proto ./proto/purchase/purchase.proto 
 	protoc --proto_path=. --micro_out=${MODIFY}:. --go_out=${MODIFY}:. proto/purchase/purchase.proto
@@ -13,7 +12,6 @@ proto:
 
 .PHONY: build
 build: proto
-
 	go build -o stock-service *.go
 
 .PHONY: test
@@ -23,3 +21,5 @@ test:
 .PHONY: docker
 docker:
 	docker build . -t stock-service:latest
+	docker tag stock-service:latest gcr.io/go-micro-test/stock-service:latest	
+	docker push gcr.io/go-micro-test/stock-service:latest	
