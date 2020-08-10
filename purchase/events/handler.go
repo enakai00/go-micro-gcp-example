@@ -84,7 +84,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 			return nil
 		})
 	if err != nil {
-		log.Fatalf("Error stroing data: %v", err)
+		return err
 	}
 	Sendout(EventPublishTable)
 	return nil
@@ -95,13 +95,11 @@ func eventHandler(p broker.Event) error {
 	eventid := header["eventid"]
 	eventType := header["type"]
 
-	query := datastore.NewQuery(EventRecordTable).Filter("eventid =", eventid)
-	query = query.Limit(1).KeysOnly()
-	keys, err := client.GetAll(context.Background(), query, nil)
+	duplicate, err := isDuplicated(eventid)
 	if err != nil {
-		log.Fatalf("Error reading datastore: %v", err)
+		log.Fatalf("Error checking duplicated event: %v", err)
 	}
-	if len(keys) != 0 { // duplicated event
+	if duplicate {
 		p.Ack()
 		return nil
 	}

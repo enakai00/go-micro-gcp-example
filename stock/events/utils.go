@@ -9,6 +9,20 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+func isDuplicated(eventid string) (bool, error) {
+	query := datastore.NewQuery(EventRecordTable).Filter("eventid =", eventid)
+	query = query.Limit(1).KeysOnly()
+	keys, err := client.GetAll(context.Background(), query, nil)
+	if err != nil {
+		return false, err
+	}
+	if len(keys) == 0 {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
 func RecordEvent(table string, eventid string) {
 	eventKey := datastore.IncompleteKey(table, nil)
 	receivedEvent := ReceivedEvent{Eventid: eventid}

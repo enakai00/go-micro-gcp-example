@@ -9,7 +9,6 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/micro/go-micro/v2/broker"
 	log "github.com/micro/go-micro/v2/logger"
-	"google.golang.org/api/iterator"
 
 	purchase "github.com/enakai00/go-micro-gcp-example/stock/proto/purchase"
 )
@@ -50,7 +49,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 				return nil
 			})
 		if err != nil {
-			log.Fatalf("Error stroing data: %v", err)
+			return err
 		}
 		Sendout(EventPublishTable)
 	}
@@ -62,16 +61,13 @@ func eventHandler(p broker.Event) error {
 	eventid := header["eventid"]
 	eventType := header["type"]
 
-	query := datastore.NewQuery(EventRecordTable).Filter("eventid =", eventid)
-	it := client.Run(context.Background(), query)
-	var receivedEvent ReceivedEvent
-	_, err := it.Next(&receivedEvent)
-	if err == nil { // duplicated event
+	duplicate, err := isDuplicated(eventid)
+	if err != nil {
+		log.Fatalf("Error checking duplicated event: %v", err)
+	}
+	if duplicate {
 		p.Ack()
 		return nil
-	}
-	if err != iterator.Done {
-		log.Fatalf("Error reading datastore: %v", err)
 	}
 
 	switch eventType {
@@ -84,10 +80,11 @@ func eventHandler(p broker.Event) error {
 		log.Infof("Handle event purchase.OrderTicket: %v", purchaseOrderTicket)
 		err = handlePurchaseOrderTicket(purchaseOrderTicket)
 		if err != nil {
-			log.Fatalf("Error handling purchaseOrderTicket: %v", err)
+			log.Warnf("Failed to handle purchaseOrderTicke: %v", err)
+		} else {
+			RecordEvent(EventRecordTable, eventid)
+			p.Ack()
 		}
-		RecordEvent(EventRecordTable, eventid)
-		p.Ack()
 	default:
 		log.Infof("Unknown event type: %s", eventType)
 		RecordEvent(EventRecordTable, eventid)
