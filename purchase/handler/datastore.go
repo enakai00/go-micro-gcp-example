@@ -34,6 +34,9 @@ func getCartStruct(cartid string) (*ds.Cart, bool) {
 	if err == iterator.Done {
 		return nil, false
 	}
+	if err != nil {
+		log.Fatalf("Error reading data: %v", err)
+	}
 	return &cart, true
 }
 
@@ -45,6 +48,9 @@ func getOrderTicketStruct(orderid string) (*ds.OrderTicket, bool) {
 	_, err := it.Next(&orderTicket)
 	if err == iterator.Done {
 		return nil, false
+	}
+	if err != nil {
+		log.Fatalf("Error reading data: %v", err)
 	}
 	return &orderTicket, true
 }
@@ -61,6 +67,9 @@ func getCartItem(cartid string, itemid string) (*ds.CartItem, bool) {
 	_, err := it.Next(&cartItem)
 	if err == iterator.Done {
 		return nil, false
+	}
+	if err != nil {
+		log.Fatalf("Error reading data: %v", err)
 	}
 	return &cartItem, true
 }
