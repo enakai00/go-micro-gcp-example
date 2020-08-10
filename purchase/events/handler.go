@@ -9,7 +9,6 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/micro/go-micro/v2/broker"
 	log "github.com/micro/go-micro/v2/logger"
-	"google.golang.org/api/iterator"
 
 	"github.com/enakai00/go-micro-gcp-example/purchase/ds"
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
@@ -24,19 +23,20 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 	newStatus := purchaseOrderTicket.Status
 	orderid := purchaseOrderTicket.Orderid
 	query := datastore.NewQuery("OrderTicket").Filter("orderid =", orderid)
-	it := client.Run(context.Background(), query)
-	var orderTicket ds.OrderTicket
-	_, err := it.Next(&orderTicket)
-	if err == iterator.Done {
+	query = query.Limit(1).KeysOnly()
+	keys, err := client.GetAll(context.Background(), query, nil)
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
 		log.Errorf("Order with orderid %s doen't exist.", orderid)
 		return nil
-	} else if err != nil {
-		log.Fatalf("Error reading data: %v", err)
 	}
 
 	_, err = client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
-			err := tx.Get(orderTicket.Key, &orderTicket)
+			var orderTicket ds.OrderTicket
+			err := tx.Get(keys[0], &orderTicket)
 			if err != nil {
 				return err
 			}
@@ -45,7 +45,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 				orderTicket.Status = "reserve_failed"
 				_, err := tx.Put(orderTicket.Key, &orderTicket)
 				if err != nil {
-					log.Fatalf("Error storing data: %v", err)
+					return err
 				}
 				return nil
 			}
@@ -54,7 +54,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 				orderTicket.Status = "reserved"
 				_, err := tx.Put(orderTicket.Key, &orderTicket)
 				if err != nil {
-					log.Fatalf("Error storing data: %v", err)
+					return err
 				}
 				return nil
 			}
@@ -63,7 +63,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 				orderTicket.Status = "approved"
 				_, err := tx.Put(orderTicket.Key, &orderTicket)
 				if err != nil {
-					log.Fatalf("Error storing data: %v", err)
+					return err
 				}
 
 				purchaseOrderTicket.Status = "approved"
@@ -96,15 +96,14 @@ func eventHandler(p broker.Event) error {
 	eventType := header["type"]
 
 	query := datastore.NewQuery(EventRecordTable).Filter("eventid =", eventid)
-	it := client.Run(context.Background(), query)
-	var receivedEvent ReceivedEvent
-	_, err := it.Next(&receivedEvent)
-	if err == nil { // duplicated event
+	query = query.Limit(1).KeysOnly()
+	keys, err := client.GetAll(context.Background(), query, nil)
+	if err != nil {
+		log.Fatalf("Error reading datastore: %v", err)
+	}
+	if len(keys) != 0 { // duplicated event
 		p.Ack()
 		return nil
-	}
-	if err != iterator.Done {
-		log.Fatalf("Error reading datastore: %v", err)
 	}
 
 	switch eventType {
@@ -117,10 +116,11 @@ func eventHandler(p broker.Event) error {
 		log.Infof("Handle event purchase.OrderTicket: %v", purchaseOrderTicket)
 		err = handlePurchaseOrderTicket(purchaseOrderTicket)
 		if err != nil {
-			log.Fatalf("Error handling purchaseOrderTicket: %v", err)
+			log.Warnf("Failed to handle purchaseOrderTicke: %v", err)
+		} else {
+			RecordEvent(EventRecordTable, eventid)
+			p.Ack()
 		}
-		RecordEvent(EventRecordTable, eventid)
-		p.Ack()
 	default:
 		log.Infof("Unknown event type: %s", eventType)
 		RecordEvent(EventRecordTable, eventid)

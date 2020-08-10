@@ -15,27 +15,6 @@ import (
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
 )
 
-/*
-type Cart struct {
-	Cartid string         `datastore:"cartid"`
-	Status string         `datastore:"status"` // open, closed, checked-out
-	Key    *datastore.Key `datastore:"__key__"`
-}
-
-type CartItem struct {
-	Itemid string         `datastore:"itemid"`
-	Count  int64          `datastore:"count"`
-	Key    *datastore.Key `datastore:"__key__"`
-}
-
-type OrderTicket struct {
-	Orderid string         `datastore:"orderid"`
-	Cartid  string         `datastore:"cartid"`
-	Status  string         `datastore:"status"`
-	Key     *datastore.Key `datastore:"__key__"`
-}
-*/
-
 var (
 	projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
 	client, _ = datastore.NewClient(context.Background(), projectID)
