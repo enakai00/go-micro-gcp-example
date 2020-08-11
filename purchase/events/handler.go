@@ -110,12 +110,12 @@ func eventHandler(p broker.Event) error {
 		if err != nil {
 			log.Warnf("Failed to handle purchaseOrderTicke: %v", err)
 		} else {
-			RecordEvent(eventid)
+			recordEvent(eventid)
 			p.Ack()
 		}
 	default:
 		log.Infof("Unknown event type: %s", eventType)
-		RecordEvent(eventid)
+		recordEvent(eventid)
 		p.Ack()
 	}
 	return nil

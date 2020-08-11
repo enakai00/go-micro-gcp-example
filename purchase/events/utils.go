@@ -24,7 +24,7 @@ func isDuplicated(eventid string) (bool, error) {
 	}
 }
 
-func RecordEvent(eventid string) {
+func recordEvent(eventid string) {
 	eventKey := datastore.IncompleteKey(eventRecordTable, nil)
 	receivedEvent := ReceivedEvent{Eventid: eventid}
 	_, err := client.Put(context.Background(), eventKey, &receivedEvent)
