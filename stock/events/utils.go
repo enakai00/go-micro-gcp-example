@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 
 	"cloud.google.com/go/datastore"
 	"github.com/micro/go-micro/v2/broker"
@@ -10,7 +11,7 @@ import (
 )
 
 func isDuplicated(eventid string) (bool, error) {
-	query := datastore.NewQuery(EventRecordTable).Filter("eventid =", eventid)
+	query := datastore.NewQuery(eventRecordTable).Filter("eventid =", eventid)
 	query = query.Limit(1).KeysOnly()
 	keys, err := client.GetAll(context.Background(), query, nil)
 	if err != nil {
@@ -23,8 +24,9 @@ func isDuplicated(eventid string) (bool, error) {
 	}
 }
 
-func RecordEvent(table string, eventid string) {
-	eventKey := datastore.IncompleteKey(table, nil)
+//func RecordEvent(table string, eventid string) {
+func RecordEvent(eventid string) {
+	eventKey := datastore.IncompleteKey(eventRecordTable, nil)
 	receivedEvent := ReceivedEvent{Eventid: eventid}
 	_, err := client.Put(context.Background(), eventKey, &receivedEvent)
 	if err != nil {
@@ -32,8 +34,8 @@ func RecordEvent(table string, eventid string) {
 	}
 }
 
-func Sendout(table string) int {
-	query := datastore.NewQuery(table).Filter("sent =", false)
+func PublishEvents() int {
+	query := datastore.NewQuery(eventPublishTable).Filter("sent =", false)
 	it := client.Run(context.Background(), query)
 
 	i := 0
@@ -64,4 +66,17 @@ func Sendout(table string) int {
 		i += 1
 	}
 	return i
+}
+
+func RegisterEvent(e interface{}, eventType string, tx *datastore.Transaction) error {
+	jsonBytes, _ := json.Marshal(e)
+	eventEntity := EventEntity{
+		Eventid:   getUUID(),
+		Type:      eventType,
+		Sent:      false,
+		EventData: jsonBytes,
+	}
+	eventEntityKey := datastore.IncompleteKey(eventPublishTable, nil)
+	_, err := tx.Put(eventEntityKey, &eventEntity)
+	return err
 }

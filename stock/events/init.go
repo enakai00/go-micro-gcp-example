@@ -27,8 +27,8 @@ var (
 	publishTopic      = os.Getenv("EVENT_PUBLISH_TOPIC")
 	subscribeTopics   = os.Getenv("EVENT_SUBSCRIBE_TOPICS")
 	projectID         = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	EventPublishTable = "StockPublishEvent"
-	EventRecordTable  = "StockReceivedEvent"
+	eventPublishTable = "StockPublishEvent"
+	eventRecordTable  = "StockReceivedEvent"
 	client, _         = datastore.NewClient(context.Background(), projectID)
 	brk               broker.Broker
 )

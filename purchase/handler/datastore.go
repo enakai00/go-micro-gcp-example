@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 
 	"cloud.google.com/go/datastore"
@@ -278,15 +277,9 @@ func Checkout(cartid string) *purchase.OrderTicket {
 				Status:    orderTicket.Status,
 				CartItems: cartContents,
 			}
-			jsonBytes, _ := json.Marshal(purchaseOrderTicket)
-			eventEntity := events.EventEntity{
-				Eventid:   getUUID(),
-				Type:      "purchase.OrderTicket",
-				Sent:      false,
-				EventData: jsonBytes,
-			}
-			eventEntityKey := datastore.IncompleteKey(events.EventPublishTable, nil)
-			_, err = tx.Put(eventEntityKey, &eventEntity)
+			err = events.RegisterEvent(purchaseOrderTicket,
+				"purchase.OrderTicket",
+				tx)
 			if err != nil {
 				return err
 			}
@@ -296,6 +289,6 @@ func Checkout(cartid string) *purchase.OrderTicket {
 	if err != nil {
 		log.Fatalf("Error stroing data: %v", err)
 	}
-	events.Sendout(events.EventPublishTable)
+	events.PublishEvents()
 	return &purchaseOrderTicket
 }

@@ -34,15 +34,9 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 					}
 				}
 
-				jsonBytes, _ := json.Marshal(purchaseOrderTicket)
-				eventEntity := EventEntity{
-					Eventid:   getUUID(),
-					Type:      "purchase.OrderTicket",
-					Sent:      false,
-					EventData: jsonBytes,
-				}
-				eventEntityKey := datastore.IncompleteKey(EventPublishTable, nil)
-				_, err := tx.Put(eventEntityKey, &eventEntity)
+				err := RegisterEvent(purchaseOrderTicket,
+					"purchase.OrderTicket",
+					tx)
 				if err != nil {
 					return err
 				}
@@ -51,7 +45,7 @@ func handlePurchaseOrderTicket(purchaseOrderTicket purchase.OrderTicket) error {
 		if err != nil {
 			return err
 		}
-		Sendout(EventPublishTable)
+		PublishEvents()
 	}
 	return nil
 }
@@ -82,12 +76,12 @@ func eventHandler(p broker.Event) error {
 		if err != nil {
 			log.Warnf("Failed to handle purchaseOrderTicke: %v", err)
 		} else {
-			RecordEvent(EventRecordTable, eventid)
+			RecordEvent(eventid)
 			p.Ack()
 		}
 	default:
 		log.Infof("Unknown event type: %s", eventType)
-		RecordEvent(EventRecordTable, eventid)
+		RecordEvent(eventid)
 		p.Ack()
 	}
 	return nil
