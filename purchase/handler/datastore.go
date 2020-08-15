@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"os"
 
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
@@ -14,19 +13,14 @@ import (
 	purchase "github.com/enakai00/go-micro-gcp-example/purchase/proto/purchase"
 )
 
-var (
-	projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	client, _ = datastore.NewClient(context.Background(), projectID)
-)
-
 func getUUID() string {
 	uuid, _ := uuid.NewRandom()
 	return uuid.String()
 }
 
 func getCartStruct(cartid string) (*ds.Cart, bool) {
-	query := datastore.NewQuery("Cart").Filter("cartid =", cartid)
-	it := client.Run(context.Background(), query)
+	query := datastore.NewQuery(ds.Kind["Cart"]).Filter("cartid =", cartid)
+	it := ds.Client.Run(context.Background(), query)
 
 	var cart ds.Cart
 	_, err := it.Next(&cart)
@@ -40,8 +34,8 @@ func getCartStruct(cartid string) (*ds.Cart, bool) {
 }
 
 func getOrderTicketStruct(orderid string) (*ds.OrderTicket, bool) {
-	query := datastore.NewQuery("OrderTicket").Filter("orderid =", orderid)
-	it := client.Run(context.Background(), query)
+	query := datastore.NewQuery(ds.Kind["OrderTicket"]).Filter("orderid =", orderid)
+	it := ds.Client.Run(context.Background(), query)
 
 	var orderTicket ds.OrderTicket
 	_, err := it.Next(&orderTicket)
@@ -60,8 +54,8 @@ func getCartItem(cartid string, itemid string) (*ds.CartItem, bool) {
 		return nil, false
 	}
 	ancestor := cart.Key
-	query := datastore.NewQuery("CartItem").Ancestor(ancestor).Filter("itemid =", itemid)
-	it := client.Run(context.Background(), query)
+	query := datastore.NewQuery(ds.Kind["CartItem"]).Ancestor(ancestor).Filter("itemid =", itemid)
+	it := ds.Client.Run(context.Background(), query)
 	cartItem := ds.CartItem{}
 	_, err := it.Next(&cartItem)
 	if err == iterator.Done {
@@ -76,12 +70,12 @@ func getCartItem(cartid string, itemid string) (*ds.CartItem, bool) {
 func CreateCart(cartid string) *purchase.Cart {
 	cart, ok := getCartStruct(cartid)
 	if !ok {
-		cartKey := datastore.IncompleteKey("Cart", nil)
+		cartKey := datastore.IncompleteKey(ds.Kind["Cart"], nil)
 		cart = &ds.Cart{
 			Cartid: cartid,
 			Status: "open",
 		}
-		_, err := client.Put(context.Background(), cartKey, cart)
+		_, err := ds.Client.Put(context.Background(), cartKey, cart)
 		if err != nil {
 			log.Fatalf("Error stroing data: %v", err)
 		}
@@ -110,7 +104,7 @@ func CloseCart(cartid string) *purchase.Cart {
 	if !ok {
 		return &purchase.Cart{}
 	}
-	_, err := client.RunInTransaction(context.Background(),
+	_, err := ds.Client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
 			var cartStruct ds.Cart
 			err := tx.Get(cartStructWithoutTx.Key, &cartStruct)
@@ -140,7 +134,7 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 		return cartItems
 	}
 
-	_, err := client.RunInTransaction(context.Background(),
+	_, err := ds.Client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
 
 			var cartStruct ds.Cart
@@ -169,7 +163,7 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 				}
 			} else {
 				cart, _ := getCartStruct(cartid)
-				key = datastore.IncompleteKey("CartItem", cart.Key)
+				key = datastore.IncompleteKey(ds.Kind["CartItem"], cart.Key)
 				data = ds.CartItem{
 					Itemid: itemid,
 					Count:  count,
@@ -194,8 +188,8 @@ func getCartItems(cartid string) []*ds.CartItem {
 	if !ok {
 		return cartItems
 	}
-	query := datastore.NewQuery("CartItem").Ancestor(cart.Key)
-	it := client.Run(context.Background(), query)
+	query := datastore.NewQuery(ds.Kind["CartItem"]).Ancestor(cart.Key)
+	it := ds.Client.Run(context.Background(), query)
 	for {
 		cartItem := ds.CartItem{}
 		_, err := it.Next(&cartItem)
@@ -239,7 +233,7 @@ func GetOrderTicket(orderid string) *purchase.OrderTicket {
 func Checkout(cartid string) *purchase.OrderTicket {
 	purchaseOrderTicket := purchase.OrderTicket{}
 
-	_, err := client.RunInTransaction(context.Background(),
+	_, err := ds.Client.RunInTransaction(context.Background(),
 		func(tx *datastore.Transaction) error {
 			cartWithoutTx, ok := getCartStruct(cartid)
 			if !ok {
@@ -260,7 +254,7 @@ func Checkout(cartid string) *purchase.OrderTicket {
 				return err
 			}
 
-			ticketKey := datastore.IncompleteKey("OrderTicket", nil)
+			ticketKey := datastore.IncompleteKey(ds.Kind["OrderTicket"], nil)
 			orderTicket := ds.OrderTicket{
 				Orderid: getUUID(),
 				Cartid:  cartid,

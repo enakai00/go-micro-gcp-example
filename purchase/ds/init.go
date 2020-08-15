@@ -1,6 +1,9 @@
 package ds
 
 import (
+	"context"
+	"os"
+
 	"cloud.google.com/go/datastore"
 )
 
@@ -22,3 +25,14 @@ type OrderTicket struct {
 	Status  string         `datastore:"status"`
 	Key     *datastore.Key `datastore:"__key__"`
 }
+
+var (
+	projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
+	Client, _ = datastore.NewClient(context.Background(), projectID)
+
+	Kind = map[string]string{
+		"Cart":        "Cart",
+		"CartItem":    "CartItem",
+		"OrderTicket": "OrderTicket",
+	}
+)
