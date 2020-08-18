@@ -16,17 +16,20 @@ func getUUID() string {
 	return uuid.String()
 }
 
-func getStructByID(idName, idValue, table string, dst interface{}) bool {
-	query := datastore.NewQuery(ds.Kind[table]).Filter(idName+" =", idValue).Limit(1)
-	it := ds.Client.Run(context.Background(), query)
-	var err error
-	switch dst := dst.(type) {
-	case *ds.Cart:
-		_, err = it.Next(dst)
-	case *ds.OrderTicket:
-		_, err = it.Next(dst)
-	}
+type entityID struct {
+	name  string
+	value string
+	table string
+}
 
+func getStructByID(id entityID, dst interface{}, parent *datastore.Key) bool {
+	query := datastore.NewQuery(ds.Kind[id.table])
+	if parent != nil {
+		query = query.Ancestor(parent)
+	}
+	query = query.Filter(id.name+" =", id.value).Limit(1)
+	it := ds.Client.Run(context.Background(), query)
+	_, err := it.Next(dst)
 	if err == iterator.Done {
 		return false
 	}
@@ -34,6 +37,15 @@ func getStructByID(idName, idValue, table string, dst interface{}) bool {
 		log.Fatalf("Error reading data: %v", err)
 	}
 	return true
+}
+
+func getStructsByParentKey(table string, dst interface{}, parent *datastore.Key) {
+	query := datastore.NewQuery(ds.Kind[table]).Ancestor(parent)
+	_, err := ds.Client.GetAll(context.Background(), query, dst)
+	if err != nil {
+		log.Fatalf("Error reading data: %v", err)
+	}
+	return
 }
 
 func createEntity(table string, src interface{},

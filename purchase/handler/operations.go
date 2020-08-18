@@ -5,7 +5,6 @@ import (
 
 	"cloud.google.com/go/datastore"
 	log "github.com/micro/go-micro/v2/logger"
-	"google.golang.org/api/iterator"
 
 	"github.com/enakai00/go-micro-gcp-example/purchase/ds"
 	"github.com/enakai00/go-micro-gcp-example/purchase/events"
@@ -14,13 +13,23 @@ import (
 
 func getCartStruct(cartid string) (*ds.Cart, bool) {
 	var cart ds.Cart
-	ok := getStructByID("cartid", cartid, "Cart", &cart)
+	id := entityID{
+		name:  "cartid",
+		value: cartid,
+		table: "Cart",
+	}
+	ok := getStructByID(id, &cart, nil)
 	return &cart, ok
 }
 
 func getOrderTicketStruct(orderid string) (*ds.OrderTicket, bool) {
 	var orderTicket ds.OrderTicket
-	ok := getStructByID("orderid", orderid, "OrderTicket", &orderTicket)
+	id := entityID{
+		name:  "orderid",
+		value: orderid,
+		table: "OrderTicket",
+	}
+	ok := getStructByID(id, &orderTicket, nil)
 	return &orderTicket, ok
 }
 
@@ -29,18 +38,14 @@ func getCartItem(cartid string, itemid string) (*ds.CartItem, bool) {
 	if !ok {
 		return nil, false
 	}
-	ancestor := cart.Key
-	query := datastore.NewQuery(ds.Kind["CartItem"]).Ancestor(ancestor).Filter("itemid =", itemid).Limit(1)
-	it := ds.Client.Run(context.Background(), query)
 	cartItem := ds.CartItem{}
-	_, err := it.Next(&cartItem)
-	if err == iterator.Done {
-		return nil, false
+	id := entityID{
+		name:  "itemid",
+		value: itemid,
+		table: "CartItem",
 	}
-	if err != nil {
-		log.Fatalf("Error reading data: %v", err)
-	}
-	return &cartItem, true
+	ok = getStructByID(id, &cartItem, cart.Key)
+	return &cartItem, ok
 }
 
 func CreateCart(cartid string) *purchase.Cart {
@@ -166,19 +171,7 @@ func getCartItems(cartid string) []*ds.CartItem {
 	if !ok {
 		return cartItems
 	}
-	query := datastore.NewQuery(ds.Kind["CartItem"]).Ancestor(cart.Key)
-	it := ds.Client.Run(context.Background(), query)
-	for {
-		cartItem := ds.CartItem{}
-		_, err := it.Next(&cartItem)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error fetching next entity: %v", err)
-		}
-		cartItems = append(cartItems, &cartItem)
-	}
+	getStructsByParentKey("CartItem", &cartItems, cart.Key)
 	return cartItems
 }
 
