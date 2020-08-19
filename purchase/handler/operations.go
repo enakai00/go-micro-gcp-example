@@ -129,9 +129,6 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 				return nil // cannot add new items
 			}
 
-			var key *datastore.Key
-			var data ds.CartItem
-
 			cartItemWithoutTx, ok := getCartItem(cartid, itemid)
 			if ok {
 				var cartItem ds.CartItem
@@ -139,19 +136,18 @@ func AddItem(cartid string, itemid string, count int64) []*purchase.CartItem {
 				if err != nil {
 					return err
 				}
-				data = ds.CartItem{
+				newCartItem := ds.CartItem{
 					Itemid: itemid,
 					Count:  cartItem.Count + count,
 				}
-				key = cartItem.Key
-				_, err = tx.Put(key, &data)
+				_, err = tx.Put(cartItem.Key, &newCartItem)
 			} else {
-				data = ds.CartItem{
+				cartItem := ds.CartItem{
 					Itemid: itemid,
 					Count:  count,
 				}
 				cart, _ := getCartStruct(cartid)
-				err = createEntity("CartItem", &data, cart.Key, nil)
+				err = createEntity("CartItem", &cartItem, cart.Key, nil)
 			}
 			if err != nil {
 				return err
